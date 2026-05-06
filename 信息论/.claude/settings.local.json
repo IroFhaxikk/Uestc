@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xelatex -interaction=nonstopmode maxflow_mincut_survey.tex)",
+      "Read(//usr/local/**)",
+      "Read(//Library/**)",
+      "Read(//usr/local/bin/**)"
+    ]
+  }
+}

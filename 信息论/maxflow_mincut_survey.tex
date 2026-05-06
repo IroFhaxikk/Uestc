@@ -1,0 +1,319 @@
+%!TEX program = xelatex
+\documentclass[12pt, a4paper]{article}
+
+% 中文支持
+\usepackage{xeCJK}
+\usepackage{fontspec}
+
+% 字体设置（macOS 常见字体，可按需修改）
+\setCJKmainfont[BoldFont={STHeiti}, ItalicFont={STKaiti}]{STSong}
+\setCJKsansfont{STHeiti}
+\setCJKmonofont{STFangsong}
+\setmainfont{Times New Roman}
+
+% 版面与排版
+\usepackage[left=2.5cm, right=2.5cm, top=2.8cm, bottom=2.8cm]{geometry}
+\usepackage{setspace}
+\setstretch{1.4}
+
+% 数学
+\usepackage{amsmath, amssymb, amsthm}
+
+% 定理环境
+\newtheorem{theorem}{定理}[section]
+\newtheorem{lemma}[theorem]{引理}
+\newtheorem{definition}[theorem]{定义}
+\newtheorem{corollary}[theorem]{推论}
+
+% 图表
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc}
+
+% 超链接与参考文献
+\usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue]{hyperref}
+\usepackage{cite}
+
+% 标题与摘要格式
+\usepackage{titlesec}
+\titleformat{\section}{\large\bfseries\centering}{}{0em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{{\thesubsection}}{1em}{}
+
+% 页眉页脚
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{\small 图网络信道容量的最大流-最小割问题综述}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ---------- 文档开始 ----------
+\begin{document}
+
+% 标题
+\begin{center}
+  {\LARGE\bfseries 图网络信道容量的最大流-最小割问题综述}\\[0.8em]
+  {\large 信息论综合研究}\\[0.4em]
+  {\normalsize 2026年5月}
+\end{center}
+
+\vspace{0.5em}
+
+% ========================= 摘要 =========================
+\begin{center}
+  \textbf{摘\quad 要}
+\end{center}
+
+\noindent
+最大流-最小割定理是图论与网络优化领域的基础性定理，而网络信道容量问题则是信息论的核心研究对象之一。本文系统综述了两者的深刻联系：从 Ford 与 Fulkerson 的经典定理出发，阐述其在有向图中的完整理论体系；进而介绍 Shannon 信道容量的定义，以及 Menger 定理对网络连通性的刻画；重点梳理 Ahlswede 等人在2000年提出的网络编码理论，揭示多播网络中信息流速率的上界恰好由最小割容量决定的本质规律；同时介绍 Edmonds-Karp、Push-Relabel 等高效求解算法。最后，本文讨论该理论在无线网络、分布式存储与量子通信等新兴领域的应用进展，并展望若干开放问题。
+
+\noindent\textbf{关键词：} 最大流；最小割；信道容量；网络编码；信息流；Ford-Fulkerson定理
+
+\vspace{1em}
+
+% ========================= 引言 =========================
+\section{引\quad 言}
+
+图网络中的信息传输问题同时涉及图论、组合优化与信息论三个领域，其中最大流-最小割定理（Max-Flow Min-Cut Theorem）是连接三者的核心桥梁。该定理直观地指出：在一个容量受限的有向网络中，从源节点到汇节点所能传送的最大信息量，等于将源与汇分隔开所需割去的边容量之和的最小值。
+
+这一命题的雏形可追溯至 Menger 在1927年针对图连通性的组合定理\cite{menger1927}。1956年，Ford 与 Fulkerson 将其推广至带权有向图，给出了系统的代数证明与构造性算法\cite{ford1956maximal}，构成此后数十年网络优化研究的理论基石。与此同时，Shannon 于1948年奠定的信息论\cite{shannon1948mathematical}提供了"信道容量"的精确定义：即在给定噪声条件下，信道所能可靠传输信息的理论最大速率。
+
+两条脉络在21世纪初汇合。Ahlswede 等人于2000年证明，在多播网络中，允许中间节点对接收到的信号进行编码（而非仅仅转发），可以达到由最小割容量决定的信息流上界\cite{ahlswede2000network}。这一网络编码（Network Coding）理论的诞生，深刻改变了人们对网络信道容量的认知，也带动了一系列算法设计与工程实践的革新。
+
+本文以"图网络信道容量的最大流-最小割"为主线，按如下结构展开：第2节介绍基本概念与数学模型；第3节阐述最大流-最小割定理及其证明要点；第4节建立网络信道容量与最小割的等价关系；第5节介绍网络编码的核心结果；第6节讨论主要求解算法；第7节综述应用与进展；第8节给出结束语。
+
+% ========================= 基本概念 =========================
+\section{基本概念与数学模型}
+
+\subsection{流网络}
+
+\begin{definition}[流网络]
+一个\textbf{流网络}（Flow Network）定义为有向图 $G = (V, E)$，其中每条边 $(u,v)\in E$ 具有非负\textbf{容量}（Capacity）$c(u,v)\geq 0$。网络中指定一个\textbf{源节点}（Source）$s\in V$ 和一个\textbf{汇节点}（Sink）$t\in V$，$s\neq t$。
+\end{definition}
+
+\begin{definition}[可行流]
+图 $G$ 上从 $s$ 到 $t$ 的一个\textbf{可行流}是函数 $f:E\to\mathbb{R}_{\geq 0}$，满足：
+\begin{enumerate}
+  \item \textbf{容量约束：} 对所有 $(u,v)\in E$，$0\leq f(u,v)\leq c(u,v)$；
+  \item \textbf{流量守恒：} 对所有 $v\in V\setminus\{s,t\}$，
+    $\displaystyle\sum_{u:(u,v)\in E} f(u,v) = \sum_{w:(v,w)\in E} f(v,w)$。
+\end{enumerate}
+可行流的\textbf{值}定义为从源节点流出的净流量：
+$|f| = \sum_{w:(s,w)\in E}f(s,w) - \sum_{u:(u,s)\in E}f(u,s)$。
+\end{definition}
+
+\subsection{割与割容量}
+
+\begin{definition}[$s$-$t$ 割]
+网络 $(G,c,s,t)$ 的一个 $s$-$t$ \textbf{割}是顶点集的一个划分 $(S, T)$，其中 $s\in S$，$t\in T$，$T=V\setminus S$。割的\textbf{容量}定义为
+\[
+  c(S,T) = \sum_{\substack{(u,v)\in E \\ u\in S,\, v\in T}} c(u,v).
+\]
+\end{definition}
+
+割容量仅计算从 $S$ 指向 $T$ 的边，反向边不计入，这与有向网络的单向传输特性一致。
+
+\subsection{信道容量}
+
+在信息论框架下，网络中每条边 $(u,v)$ 可视为一条点对点信道，其\textbf{香农容量}（Shannon Capacity）$C(u,v)$ 表示该信道无差错传输信息的理论最大速率（单位：比特/信道使用）。对于无噪声确定性信道，$C(u,v) = \log_2 c(u,v)$（$c$ 取字符表大小）；对于加性高斯白噪声（AWGN）信道，由香农公式 $C = W\log_2(1+\text{SNR})$ 给出。本文在大多数情境下将容量视为实数，不区分物理机制。
+
+% ========================= 最大流最小割定理 =========================
+\section{最大流-最小割定理}
+
+\subsection{定理陈述}
+
+\begin{theorem}[最大流-最小割定理，Ford-Fulkerson 1956]\label{thm:maxflow-mincut}
+在流网络 $(G,c,s,t)$ 中，从 $s$ 到 $t$ 的最大流值等于所有 $s$-$t$ 割容量的最小值：
+\[
+  \max_{f} |f| = \min_{(S,T)} c(S,T).
+\]
+\end{theorem}
+
+该定理包含两个方向：
+\begin{itemize}
+  \item \textbf{弱对偶（Weak Duality）：} 对任意可行流 $f$ 和任意割 $(S,T)$，$|f|\leq c(S,T)$，因此最大流值不超过最小割容量。
+  \item \textbf{强对偶（Strong Duality）：} 存在可行流 $f^*$ 与割 $(S^*,T^*)$ 使得 $|f^*| = c(S^*,T^*)$。
+\end{itemize}
+
+\subsection{证明概要}
+
+弱对偶的证明直接由守恒性与容量约束得出。对强对偶，Ford-Fulkerson 方法通过\textbf{增广路径}（Augmenting Path）迭代构造：
+
+\begin{enumerate}
+  \item 在残差图 $G_f$（包含正向剩余容量与反向退流能力的辅助图）中寻找从 $s$ 到 $t$ 的路径 $P$；
+  \item 沿 $P$ 推送最大可能流量 $\delta = \min_{e\in P} r_f(e)$，更新流与残差图；
+  \item 重复直至残差图中不存在 $s$-$t$ 路径。
+\end{enumerate}
+
+当算法终止时，令 $S^* = \{v : \text{残差图中 }s\text{ 可达 }v\}$，$T^* = V\setminus S^*$，则 $(S^*,T^*)$ 是最小割，且 $c(S^*,T^*) = |f^*|$\cite{ford1956maximal}。该构造同时给出了最大流与最小割的互补松弛条件：最小割中每条前向边饱和（$f=c$），每条后向边为零（$f=0$）。
+
+\subsection{与 Menger 定理的联系}
+
+Menger 定理\cite{menger1927}是最大流-最小割定理的离散组合版本：在无权图中，从 $s$ 到 $t$ 的最大\textbf{内部顶点不相交路径数}等于分离 $s$ 与 $t$ 所需删去的最小顶点数。将每个顶点拆分为入点与出点、连以容量为1的边，即可在流网络框架下统一表述。两个定理共同揭示了网络连通性与信息传输能力的本质联系。
+
+% ========================= 网络信道容量 =========================
+\section{网络信道容量与最小割}
+
+\subsection{单播网络容量}
+
+在点对点（单播）场景下，网络从源 $s$ 向单一目的节点 $t$ 传输信息。若中间节点仅做\textbf{存储转发}（Store-and-Forward），则网络对应于流网络模型，信息流速率受限于所有 $s$-$t$ 割：
+
+\[
+  R^* = \min_{(S,T):\, s\in S,\, t\in T} \sum_{\substack{(u,v)\in E \\ u\in S,\,v\in T}} C(u,v).
+\]
+
+由定理\ref{thm:maxflow-mincut}，该速率可通过适当的流分配精确达到，因此最小割容量即为单播网络的\textbf{香农容量}。
+
+\subsection{多播网络的挑战}
+
+多播场景中，源 $s$ 需同时向目的节点集 $T = \{t_1, t_2, \ldots, t_k\}$ 传递\emph{相同}的信息。若中间节点仍仅做转发，则对每个 $t_i$，可达速率上界为 $\lambda_i = \min_{(S,T_i)} c(S,T_i)$（$s\in S$，$t_i\in T_i$）。朴素地思考，整个多播速率受限于 $\min_i \lambda_i$，但仅靠转发往往\emph{无法}同时达到所有目的节点的最小割上界。
+
+\textbf{蝶形网络}（Butterfly Network）是揭示这一现象的经典反例\cite{ahlswede2000network}：如图所示，若中间节点仅转发，则两个目的节点各只能接收速率1的信息；而若允许中间节点将两路信号进行异或（XOR）编码后广播，则两个目的节点均可达到速率1，同时实现了各自的最小割上界。
+
+% ========================= 网络编码 =========================
+\section{网络编码与最大流上界的可达性}
+
+\subsection{网络编码的基本思想}
+
+\textbf{网络编码}（Network Coding）允许中间节点对来自不同输入边的数据进行\textbf{编码组合}，再输出至各条出边，而不局限于简单的复制转发。其核心结论由以下定理给出：
+
+\begin{theorem}[网络编码容量定理，Ahlswede 等 2000]\label{thm:nc}
+在确定性有向无环多播网络中，若允许中间节点进行编码，则从源 $s$ 同时向目的集 $\{t_1,\ldots,t_k\}$ 多播信息的最大速率为
+\[
+  R^* = \min_{i=1}^{k} \min_{\text{割}(S_i,T_i):\,s\in S_i,\,t_i\in T_i} c(S_i, T_i).
+\]
+\end{theorem}
+
+即：多播容量等于各目的节点对应\textbf{最小割容量的最小值}，且该上界通过网络编码\textbf{可达}\cite{ahlswede2000network}。
+
+\subsection{线性网络编码}
+
+Li、Yeung 与 Cai 进一步证明，在有限域 $\mathbb{F}_q$（$q$ 足够大）上的\textbf{线性编码}即足以达到多播容量\cite{li2003linear}。每条边传输的符号是所有源符号的线性组合：
+\[
+  y_e = \sum_{e'\in\text{In}(e)} \alpha_{e',e}\, y_{e'},
+\]
+其中 $\alpha_{e',e}\in\mathbb{F}_q$ 为本地编码系数。Ho 等人随后证明\textbf{随机线性网络编码}——各系数在有限域上均匀随机选取——以高概率达到多播容量\cite{ho2006random}，极大简化了编码方案的设计。
+
+\subsection{割的信息论诠释}
+
+从信息论角度，最小割 $(S, T)$（$s\in S$，$t\in T$）将网络中从源到目的所有信息传输路径"切断"，穿越割的边集 $\text{Cut}(S,T) = \{(u,v)\in E : u\in S, v\in T\}$ 是信息传递的唯一渠道。由数据处理不等式（Data Processing Inequality），目的节点 $t$ 所获信息不超过穿越任一割的信息量，而割的信息携带上限恰为 $\sum_{(u,v)\in\text{Cut}} C(u,v)$。因此最小割容量是信道容量的信息论下界，网络编码定理则证明该下界可达，完成了闭合论证。
+
+% ========================= 算法 =========================
+\section{主要算法}
+
+\subsection{Ford-Fulkerson 方法}
+
+Ford-Fulkerson 方法通过不断在残差图中寻找增广路径并增流来求解最大流。若容量为整数，则算法在有限步内终止，时间复杂度为 $O(|f^*|\cdot |E|)$，其中 $|f^*|$ 为最大流值。若容量为无理数，则存在不收敛的病态情形。
+
+\subsection{Edmonds-Karp 算法}
+
+Edmonds 与 Karp（1972）\cite{edmonds1972theoretical}将增广路径的搜索限定为\textbf{最短路径}（BFS），保证每次增广至少令某条边达到饱和，从而将增广次数上界降至 $O(V\cdot E)$，总时间复杂度为 $O(V\cdot E^2)$，与容量大小无关，适用于一般有理容量网络。
+
+\subsection{Push-Relabel 算法}
+
+Goldberg 与 Tarjan（1988）提出的\textbf{推流重标号}（Push-Relabel）算法\cite{goldberg1988new}不再要求显式的全局增广路径，而是维护局部的\textbf{高度函数}（Height Function）与\textbf{超额流}（Excess Flow），每步仅在局部节点对之间推送流量。最优实现的时间复杂度为 $O(V^2\sqrt{E})$，是目前理论上最优的确定性最大流算法之一，广泛应用于大规模图像分割、VLSI布局等实际工程。
+
+\subsection{网络编码中的代数算法}
+
+在线性网络编码中，求解编码系数等价于在矩阵空间中寻找满秩的传输矩阵。Jaggi 等人\cite{jaggi2005polynomial}提出了基于多项式时间的集中式算法，其核心步骤是贪心地对每条边分配线性编码系数，使各目的节点的传输矩阵保持行满秩，所需有限域大小为 $q\geq k$（$k$ 为目的节点数）。
+
+% ========================= 应用与进展 =========================
+\section{应用与研究进展}
+
+\subsection{无线网络与干扰信道}
+
+有线网络的结论向无线场景的推广面临广播效应与干扰两大挑战。在高斯干扰信道中，各发送-接收对的容量域（Capacity Region）至今尚未完全刻画，仅知其在强干扰\cite{carleial1975case}与弱干扰下的边界表达式。无线网络编码（Physical-layer Network Coding）利用信号叠加的自然性质，在物理层实现编码，可进一步突破传统路由的吞吐量瓶颈。
+
+\subsection{分布式存储与再生码}
+
+网络编码在分布式存储系统（如 RAID 或云存储）中以\textbf{纠删码}（Erasure Code）形式出现。Dimakis 等人\cite{dimakis2010network}建立了分布式存储修复问题与最大流的等价性：将存储节点及其通信过程建模为信息流图，修复失效节点所需带宽的最小值由该图的最小割决定，从而导出\textbf{再生码}（Regenerating Code）的参数权衡曲线。
+
+\subsection{量子网络}
+
+量子信息网络中，量子纠缠的分发能力同样受到最大流-最小割型定理的约束。量子网络的"容量"由量子纠缠蒸馏速率刻画，Pirandola\cite{pirandola2017fundamental}证明了量子信道的多跳纠缠辅助容量上界由重复使用的信道最小割决定，推动了量子网络编码的理论研究。
+
+\subsection{开放问题}
+
+尽管多播容量已完全解决，以下问题仍悬而未决：（1）一般\textbf{多用播}（Multi-session）网络的容量域尚无完整刻画，甚至对两路单播的容量区域也仅有部分结果\cite{harvey2006comparing}；（2）无线衰落信道多播容量的可达性；（3）分组交换网络中非线性网络编码是否具有优势。
+
+% ========================= 结束语 =========================
+\section{结\quad 束\quad 语}
+
+本文综述了图网络信道容量与最大流-最小割定理的理论联系及其研究进展。从经典的 Ford-Fulkerson 定理出发，经由 Shannon 信道容量、Menger 连通性定理，最终归结至 Ahlswede 等人网络编码的里程碑成果：多播网络的信息流上界恰好由最小割容量决定，且通过线性网络编码完全可达。这一理论优美地将图论的组合结构与信息论的编码本质统一于同一框架之下。
+
+在算法层面，从 Ford-Fulkerson 到 Edmonds-Karp 再到 Push-Relabel，最大流问题的高效求解不断取得突破；随机线性网络编码则将分布式实现的复杂度降至实用水平。在应用层面，该理论已渗透至无线通信、分布式存储与量子网络等前沿领域，并持续催生新的研究问题。
+
+展望未来，多用播网络容量、带干扰信道的网络编码以及量子网络中的纠缠传输，仍是待深入探索的方向。随着大规模网络数据传输需求的持续增长，最大流-最小割理论必将在网络信息论的研究版图中继续发挥核心作用。
+
+% ========================= 参考文献 =========================
+\begin{thebibliography}{99}
+
+\bibitem{menger1927}
+K.~Menger,
+``Zur allgemeinen Kurventheorie,''
+\emph{Fundamenta Mathematicae}, vol.~10, pp.~96--115, 1927.
+
+\bibitem{shannon1948mathematical}
+C.~E. Shannon,
+``A mathematical theory of communication,''
+\emph{Bell System Technical Journal}, vol.~27, no.~3, pp.~379--423, 1948.
+
+\bibitem{ford1956maximal}
+L.~R. Ford and D.~R. Fulkerson,
+``Maximal flow through a network,''
+\emph{Canadian Journal of Mathematics}, vol.~8, pp.~399--404, 1956.
+
+\bibitem{edmonds1972theoretical}
+J.~Edmonds and R.~M. Karp,
+``Theoretical improvements in algorithmic efficiency for network flow problems,''
+\emph{Journal of the ACM}, vol.~19, no.~2, pp.~248--264, 1972.
+
+\bibitem{ahlswede2000network}
+R.~Ahlswede, N.~Cai, S.-Y.~R. Li, and R.~W. Yeung,
+``Network information flow,''
+\emph{IEEE Transactions on Information Theory}, vol.~46, no.~4, pp.~1204--1216, 2000.
+
+\bibitem{li2003linear}
+S.-Y.~R. Li, R.~W. Yeung, and N.~Cai,
+``Linear network coding,''
+\emph{IEEE Transactions on Information Theory}, vol.~49, no.~2, pp.~371--381, 2003.
+
+\bibitem{ho2006random}
+T.~Ho, M.~M\'{e}dard, R.~Koetter, D.~R. Karger, M.~Effros, J.~Shi, and B.~Leong,
+``A random linear network coding approach to multicast,''
+\emph{IEEE Transactions on Information Theory}, vol.~52, no.~10, pp.~4413--4430, 2006.
+
+\bibitem{goldberg1988new}
+A.~V. Goldberg and R.~E. Tarjan,
+``A new approach to the maximum-flow problem,''
+\emph{Journal of the ACM}, vol.~35, no.~4, pp.~921--940, 1988.
+
+\bibitem{jaggi2005polynomial}
+S.~Jaggi, P.~Sanders, P.~A. Chou, M.~Effros, S.~Egner, K.~Jain, and L.~M.~G.~M. Tolhuizen,
+``Polynomial time algorithms for multicast network code construction,''
+\emph{IEEE Transactions on Information Theory}, vol.~51, no.~6, pp.~1973--1982, 2005.
+
+\bibitem{carleial1975case}
+A.~B. Carleial,
+``A case where interference does not reduce capacity,''
+\emph{IEEE Transactions on Information Theory}, vol.~21, no.~5, pp.~569--570, 1975.
+
+\bibitem{dimakis2010network}
+A.~G. Dimakis, P.~B. Godfrey, Y.~Wu, M.~J. Wainwright, and K.~Ramchandran,
+``Network coding for distributed storage systems,''
+\emph{IEEE Transactions on Information Theory}, vol.~56, no.~9, pp.~4539--4551, 2010.
+
+\bibitem{harvey2006comparing}
+N.~J.~A. Harvey, R.~Kleinberg, and A.~R. Lehman,
+``Comparing network coding with multicommodity flow for the $k$-pairs communication problem,''
+\emph{MIT LCS Technical Report TR-964}, 2006.
+
+\bibitem{pirandola2017fundamental}
+S.~Pirandola, R.~Laurenza, C.~Ottaviani, and L.~Banchi,
+``Fundamental limits of repeaterless quantum communications,''
+\emph{Nature Communications}, vol.~8, p.~15043, 2017.
+
+\end{thebibliography}
+
+\end{document}
