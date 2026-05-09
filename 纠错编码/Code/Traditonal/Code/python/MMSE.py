@@ -267,7 +267,7 @@ def simulate_mmse_channel_estimation():
     estimator = MMSEChannelEstimation(Nfft, Nps, pilot_value)
     
     # 创建LS估计器用于对比
-    from LS import LSChannelEstimation
+    from 纠错编码.Code.Traditonal.Code.python.LS import LSChannelEstimation
     ls_estimator = LSChannelEstimation(Nfft, Nps, pilot_value)
     
     # 生成信道
@@ -402,7 +402,7 @@ def compare_snr_performance():
     
     estimator = MMSEChannelEstimation(Nfft, Nps)
     
-    from LS import LSChannelEstimation
+    from 纠错编码.Code.Traditonal.Code.python.LS import LSChannelEstimation
     ls_estimator = LSChannelEstimation(Nfft, Nps)
     
     mse_ls = np.zeros(len(snr_range))
