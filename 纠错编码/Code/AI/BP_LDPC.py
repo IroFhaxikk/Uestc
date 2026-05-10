@@ -218,12 +218,12 @@ def plot_snr_gain(snr_range, ber_trad, ber_neural, n, k, save_dir):
         # 在传统 MinSum 曲线上找到该 BER 对应的 SNR（插值）
         snr_trad_interp = np.interp(
             np.log10(ber_target),
-            [-np.log10(b) for _, b in reversed(valid_trad)],
+            [np.log10(b) for _, b in reversed(valid_trad)],
             [s for s, _ in reversed(valid_trad)]
         )
         snr_neural_interp = np.interp(
             np.log10(ber_target),
-            [-np.log10(b) for _, b in reversed(valid_neural)],
+            [np.log10(b) for _, b in reversed(valid_neural)],
             [s for s, _ in reversed(valid_neural)]
         )
         gain = snr_trad_interp - snr_neural_interp
