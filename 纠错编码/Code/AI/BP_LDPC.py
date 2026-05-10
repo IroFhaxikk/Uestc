@@ -285,7 +285,7 @@ def main():
         H_main, G_main,
         num_iter=5,
         snr_db_list=[2.0, 4.0, 6.0],
-        num_epochs=100,
+        num_epochs=40,
         lr=0.08,
         batch_size=15,
         epsilon=0.06,
